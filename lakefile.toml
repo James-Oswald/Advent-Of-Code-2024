@@ -2,9 +2,8 @@ name = "Advent-Of-Code-2024"
 version = "0.1.0"
 defaultTargets = ["advent-of-code-2024"]
 
-[[lean_lib]]
-name = "AdventOfCode2024"
-
 [[lean_exe]]
-name = "advent-of-code-2024"
-root = "Main"
+name = "Day1"
+srcDir="AdventOfCode2024"
+root = "Day1"
+
