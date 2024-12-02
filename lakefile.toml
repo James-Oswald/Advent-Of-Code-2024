@@ -7,3 +7,7 @@ name = "Day1"
 srcDir="AdventOfCode2024"
 root = "Day1"
 
+[[lean_exe]]
+name = "Day2"
+srcDir="AdventOfCode2024"
+root = "Day2"
