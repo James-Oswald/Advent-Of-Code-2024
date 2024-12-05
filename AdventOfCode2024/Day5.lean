@@ -44,24 +44,24 @@ def ruleLegal (bm : Std.HashMap Nat (Std.HashSet Nat)) : List Nat -> Option (Nat
 def List.middle (l : List Nat) : Nat :=
   l.get! (l.length / 2)
 
---O(rsu^2)
+--O(rus^2)
 def part1 (input : String) : Nat :=
   let (rules, updates) := parseInput input
   let bm := beforeMap rules
   let legal := updates.filter (ruleLegal bm · |>.isNone)
   legal |>.map (List.middle) |>.foldl Nat.add 0
 
---O(ru^2)
+--O(rs^2)
 def fixIllegal (bm : Std.HashMap Nat (Std.HashSet Nat)) (illegal : List Nat) : List Nat := Id.run do
   let mut ill := illegal.toArray;
-  while ruleLegal bm ill.toList |>.isSome do       --O(u^2) at most r times 
+  while ruleLegal bm ill.toList |>.isSome do       --O(s^2) at most r times 
     let (a, b) := ruleLegal bm ill.toList |>.get!
     let i := ill.toList.indexOf a
     let j := ill.toList.indexOf b
     ill := ill.swap! i j
   ill.toList
 
---(rsu^2)
+--(rus^2)
 def part2 (input : String) : Nat :=
   let (rules, updates) := parseInput input
   let bm := beforeMap rules
