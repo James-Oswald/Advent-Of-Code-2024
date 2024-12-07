@@ -7,18 +7,12 @@ structure GState where
   dir : Int × Int -- x,y direction the guard is facing
 deriving Inhabited, BEq, Hashable
 
-def GState.nextPos (s : GState) : Int × Int := (s.pos.1 + s.dir.1, s.pos.2 + s.dir.2)
-
 structure LabState where
   dim : Nat × Nat -- Width x Height
   gs : GState
-  objs : Std.HashSet (Int × Int) -- Positions of objects in the lab
+  objs : Std.HashSet (Int × Int)
 deriving Inhabited
 
--- instance : ToString LabState where
---   toString s := s!"{s.dim} {s.gs.pos} {s.gs.dir} {s.objs.toList.toString}"
-
--- (1, 0) -> (0, 1) -> (-1, 0) -> (0, -1)
 def rotate : Int × Int -> Int × Int
 | (1, 0) => (0, 1)
 | (0, 1) => (-1, 0)
@@ -33,19 +27,19 @@ def rotation : Char -> Int × Int
 | '>' => (1, 0)
 | _ => (0, 0)
 
-def LabState.inBounds (s : LabState) (p : Int × Int) : Bool :=
-  0 <= p.1 && p.1 <= s.dim.1 && 0 <= p.2 && p.2 <= s.dim.2
-
--- Play out the lab state getting the path of the guard with directions
-partial def LabState.run (s : LabState) : List GState :=
-  let next_pos := s.gs.nextPos
-  if s.inBounds next_pos then
-    if s.objs.contains next_pos then
-      {s with gs.dir := rotate s.gs.dir}.run
-    else
-      s.gs::{s with gs.pos := next_pos}.run
+-- Play out a lab state, returning none if the guard is stuck in a loop, or the path taken otherwise
+partial def LabState.run (s : LabState) (v : Std.HashSet GState := {}) :
+Option (List GState) :=
+  let ⟨⟨w, h⟩, ⟨p, d⟩, os⟩ := s
+  let np := (p.1 + d.1, p.2 + d.2)
+  if v.contains s.gs then
+    none
+  else if !(0 <= p.1 && p.1 <= w && 0 <= p.2 && p.2 <= h) then
+    some [s.gs]
+  else if os.contains np then
+    {s with gs.dir := rotate s.gs.dir}.run (v.insert s.gs) |>.map (s.gs::.)
   else
-    [s.gs]
+    {s with gs.pos := np}.run (v.insert s.gs) |>.map (s.gs::.)
 
 def parseInput (s : String) : LabState := Id.run do
   let mut objs := Std.HashSet.empty
@@ -62,7 +56,7 @@ def parseInput (s : String) : LabState := Id.run do
   return {dim, gs, objs}
 
 def uniquePathPositions (s : LabState) : List (Int × Int) :=
-   s.run.map GState.pos |> Std.HashSet.ofList |>.toList
+   s.run.get!.map GState.pos |> Std.HashSet.ofList |>.toList
 
 def part1 (s : String) : Nat :=
   parseInput s |> uniquePathPositions |>.length
@@ -74,25 +68,11 @@ Std.HashMap (Int × Int) (List (Int × Int)) := Id.run do
     d := d.insert pos (if H : d.contains pos then (dir::d[pos]) else [dir])
   return d.filter (λ _ v => v.length > 1)
 
--- Play out a lab state, returning true if the guard enters a loop but false if it exits the lab
-partial def LabState.loops (s : LabState) (v : Std.HashSet GState := {}) : Bool :=
-  if !v.contains s.gs then
-    let next_pos := s.gs.nextPos
-    if s.inBounds next_pos then
-      if s.objs.contains next_pos then
-          {s with gs.dir := rotate s.gs.dir}.loops (v.insert s.gs)
-      else
-        {s with gs.pos := next_pos}.loops (v.insert s.gs)
-    else
-      false
-  else
-    true
-
 def part2 (s : String) : Nat :=
   let lab := parseInput s
   uniquePathPositions lab
   |>.map (λ p => {lab with objs := lab.objs.insert p})
-  |>.filter LabState.loops
+  |>.filter (·.run.isNone)
   |>.length
 
 def main : IO Unit := do
