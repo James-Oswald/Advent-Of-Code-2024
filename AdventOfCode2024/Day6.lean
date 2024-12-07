@@ -28,32 +28,30 @@ def rotation : Char -> Int × Int
 | _ => (0, 0)
 
 -- Play out a lab state, returning none if the guard is stuck in a loop, or the path taken otherwise
-partial def LabState.run (s : LabState) (v : Std.HashSet GState := {}) :
-Option (List GState) :=
-  let ⟨⟨w, h⟩, ⟨p, d⟩, os⟩ := s
-  let np := (p.1 + d.1, p.2 + d.2)
-  if v.contains s.gs then
+-- O(wh) where wh is the width x height of the lab, worst case scenario guard bounces around the entire lab
+-- before we detect a loop or exit.
+partial def LabState.run (s : LabState) (v : Std.HashSet GState := {}) : Option (List GState) :=
+  let ⟨⟨w, h⟩, gs, os⟩ := s
+  let ⟨p,d⟩ := gs
+  let np := (p.1 + d.1, p.2 + d.2) -- Next position
+  if v.contains gs then                                    -- Guard is stuck in a loop
     none
-  else if !(0 <= p.1 && p.1 <= w && 0 <= p.2 && p.2 <= h) then
-    some [s.gs]
-  else if os.contains np then
-    {s with gs.dir := rotate s.gs.dir}.run (v.insert s.gs) |>.map (s.gs::.)
-  else
-    {s with gs.pos := np}.run (v.insert s.gs) |>.map (s.gs::.)
+  else if 0 > np.1 || np.1 > w || 0 > np.2 || np.2 > h then -- Guard is out of bounds
+    some [gs]
+  else if os.contains np then                              -- Guard has hit an object
+    (gs::.) <$> {s with gs.dir := rotate d}.run (v.insert gs)
+  else                                                     -- Guard is in open space
+    (gs::.) <$> {s with gs.pos := np}.run (v.insert gs)
 
-def parseInput (s : String) : LabState := Id.run do
-  let mut objs := Std.HashSet.empty
-  let mut gs := ⟨(0, 0), (0, 0)⟩
-  let mut dim := (0, 0)
-  for ⟨i, line⟩ in s.splitOn "\n"|>.enum do
-    dim := {dim with fst := i}
-    for ⟨j, c⟩ in line.data.enum do
-      dim := {dim with snd := j}
-      match c with
-      | '^' | 'v' | '<' | '>' => gs := ⟨(j, i), rotation c⟩
-      | '#' => objs := objs.insert ((j : Int), (i : Int))
-      | _ => ()
-  return {dim, gs, objs}
+def parseInput (input : String) : LabState :=
+  let rec loop (i j : Nat) (l : LabState): List Char -> LabState
+  | [] => {l with dim := (i, j)}
+  | h :: t => match h with
+    | '^' | 'v' | '<' | '>' => loop (i+1) j {l with gs := ⟨(i, j), rotation h⟩} t
+    | '#' => loop (i+1) j {l with objs := l.objs.insert (i, j)} t
+    | '\n' => loop 0 (j+1) l t
+    | _ => loop (i+1) j l t
+  loop 0 0 default input.data
 
 def uniquePathPositions (s : LabState) : List (Int × Int) :=
    s.run.get!.map GState.pos |> Std.HashSet.ofList |>.toList
