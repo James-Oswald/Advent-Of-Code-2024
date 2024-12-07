@@ -1,7 +1,7 @@
 
 -- First Pass =================================================================
 def part1 : IO Unit := do
-  let input ← IO.FS.lines "AdventOfCode2024/Day1in1.txt"
+  let input ← IO.FS.lines "AdventOfCode2024/Day1.txt"
   let spaced := input.map λs => s.replace "   " " "
   let split := spaced.map (·.split (λc => c == ' '))
   let numbers := split.map λl => (l[0]!.toInt!,l[1]!.toInt!)
@@ -14,7 +14,7 @@ def part1 : IO Unit := do
   IO.print s!"{sum}\n"
 
 def part2 : IO Unit := do
-  let input ← IO.FS.lines "AdventOfCode2024/Day1in1.txt"
+  let input ← IO.FS.lines "AdventOfCode2024/Day1.txt"
   let spaced := input.map λs => s.replace "   " " "
   let split := spaced.map (·.split (λc => c == ' '))
   let numbers := split.map λl => (l[0]!.toInt!,l[1]!.toInt!)
